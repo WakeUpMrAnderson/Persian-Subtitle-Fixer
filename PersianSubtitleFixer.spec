@@ -39,6 +39,11 @@ exe = EXE(
     icon='assets/comics-mask_97446.ico'
 )
 
+app = BUNDLE(exe,
+             name='PersianSubtitleFixer.app',
+             icon="assets/comics-mask_97446.icns",
+             bundle_identifier='com.persiansubtitlefixer.app')
+
 coll = COLLECT(
     exe,
     a.binaries,

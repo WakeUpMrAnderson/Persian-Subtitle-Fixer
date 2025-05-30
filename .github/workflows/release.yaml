@@ -44,7 +44,8 @@ jobs:
       - name: Install additional macOS dependencies
         if: matrix.os == 'macos-latest'
         run: |
-          brew install create-dmg
+          # We'll use the built-in hdiutil instead of create-dmg for simplicity
+          echo "Using built-in hdiutil for DMG creation"
         shell: bash
 
       - name: Install UPX (Windows)
@@ -120,25 +121,48 @@ jobs:
             rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/webview
             rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/translations
           elif [ "$RUNNER_OS" = "macOS" ]; then
-            # Remove unnecessary Qt modules and libraries
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/qml
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/bearer
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/generic
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/geometryloaders
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/imageformats/libq{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}.dylib
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/mediaservice
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/platforms/libq{minimal,offscreen,webgl}.dylib
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/playlistformats
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/position
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/printsupport
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/renderplugins
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sceneparsers
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sensorgestures
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sensors
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sqldrivers
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/texttospeech
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/webview
-            rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/translations
+            # Check if we have .app bundle or directory structure
+            if [ -d "dist/PersianSubtitleFixer.app" ]; then
+              # Remove unnecessary Qt modules from .app bundle
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/qml
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/bearer
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/generic 
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/geometryloaders
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/imageformats/libq{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}.dylib
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/mediaservice
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/platforms/libq{minimal,offscreen,webgl}.dylib
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/playlistformats
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/position
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/printsupport
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/renderplugins
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sceneparsers
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sensorgestures
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sensors
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sqldrivers
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/texttospeech
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/webview
+              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/translations
+            else
+              # Remove unnecessary Qt modules from directory structure
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/qml
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/bearer
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/generic
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/geometryloaders
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/imageformats/libq{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}.dylib
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/mediaservice
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/platforms/libq{minimal,offscreen,webgl}.dylib
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/playlistformats
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/position
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/printsupport
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/renderplugins
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sceneparsers
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sensorgestures
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sensors
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sqldrivers
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/texttospeech
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/webview
+              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/translations
+            fi
           fi
         shell: bash
 
@@ -179,26 +203,61 @@ jobs:
         run: |
           # Create a clean directory for release files
           mkdir -p release
-          # Copy the .app bundle
-          cp -r dist/PersianSubtitleFixer.app release/
-          # Create DMG
-          create-dmg \
-            --volname "PersianSubtitleFixer ${{ env.APP_VERSION }}" \
-            --volicon "release/PersianSubtitleFixer.app/Contents/Resources/icon.icns" \
-            --window-pos 200 120 \
-            --window-size 600 300 \
-            --icon-size 100 \
-            --icon "PersianSubtitleFixer.app" 175 120 \
-            --hide-extension "PersianSubtitleFixer.app" \
-            --app-drop-link 425 120 \
-            "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg" \
-            "release/" || {
-              # Fallback: create simple DMG if create-dmg fails
-              hdiutil create -volname "PersianSubtitleFixer ${{ env.APP_VERSION }}" \
-                -srcfolder release \
-                -ov -format UDZO \
-                "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg"
-            }
+          
+          # Check what PyInstaller actually created
+          echo "Contents of dist directory:"
+          ls -la dist/
+          
+          # Handle both possible PyInstaller outputs: .app bundle or directory
+          if [ -d "dist/PersianSubtitleFixer.app" ]; then
+            echo "Found .app bundle"
+            cp -r dist/PersianSubtitleFixer.app release/
+            APP_PATH="release/PersianSubtitleFixer.app"
+          elif [ -d "dist/PersianSubtitleFixer" ]; then
+            echo "Found directory bundle, creating .app structure"
+            mkdir -p "release/PersianSubtitleFixer.app/Contents/MacOS"
+            mkdir -p "release/PersianSubtitleFixer.app/Contents/Resources"
+            
+            # Copy the executable and supporting files
+            cp -r dist/PersianSubtitleFixer/* "release/PersianSubtitleFixer.app/Contents/MacOS/"
+            
+            # Create Info.plist
+            cat > "release/PersianSubtitleFixer.app/Contents/Info.plist" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>PersianSubtitleFixer</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.persiansubtitlefixer.app</string>
+              <key>CFBundleName</key>
+              <string>PersianSubtitleFixer</string>
+              <key>CFBundleVersion</key>
+              <string>${{ env.APP_VERSION }}</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${{ env.APP_VERSION }}</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+          </dict>
+          </plist>
+          EOF
+            APP_PATH="release/PersianSubtitleFixer.app"
+          else
+            echo "Error: Could not find PyInstaller output"
+            exit 1
+          fi
+          
+          # Make the main executable executable
+          chmod +x "$APP_PATH/Contents/MacOS/PersianSubtitleFixer"
+          
+          # Create DMG (simplified version without icon dependencies)
+          hdiutil create -volname "PersianSubtitleFixer ${{ env.APP_VERSION }}" \
+            -srcfolder release \
+            -ov -format UDZO \
+            "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg"
+            
+          echo "DMG created successfully"
         shell: bash
 
       - name: Windows Code Signing (optional)
