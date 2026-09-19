@@ -199,23 +199,24 @@ INFOPLIST
             echo "Skipping code signing - certificate information not provided"
           fi
 
-      - name: Create release archive
+      - name: Create release archive (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            cd release
-            Compress-Archive -Path .\* -DestinationPath ..\PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip
-            cd ..
-          elif [ "$RUNNER_OS" = "macOS" ]; then
+          cd release
+          Compress-Archive -Path .\* -DestinationPath ..\PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip
+        shell: pwsh
+
+      - name: Create release archive (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
             cd release
             zip -r ../PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip *
-            cd ..
           else
             cd release
             zip -r ../PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip *
-            cd ..
           fi
         shell: bash
-
       - name: Generate SHA256 checksum
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
