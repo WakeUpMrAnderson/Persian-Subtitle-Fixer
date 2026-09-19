@@ -22,7 +22,7 @@ jobs:
         run: pip install ruff
 
       - name: Run Ruff
-        run: ruff check --ignore E501 .
+        run: ruff check .
 
   test:
     name: Test with pytest

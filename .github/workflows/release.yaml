@@ -217,12 +217,17 @@ INFOPLIST
             zip -r ../PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip *
           fi
         shell: bash
-      - name: Generate SHA256 checksum
+      - name: Generate SHA256 checksum (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            $hash = (Get-FileHash -Algorithm SHA256 -Path PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip).Hash.ToLower()
-            $hash | Out-File -FilePath PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip.sha256 -Encoding ascii
-          elif [ "$RUNNER_OS" = "macOS" ]; then
+          $hash = (Get-FileHash -Algorithm SHA256 -Path PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip).Hash.ToLower()
+          $hash | Out-File -FilePath PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip.sha256 -Encoding ascii
+        shell: pwsh
+
+      - name: Generate SHA256 checksum (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
             shasum -a 256 PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip | cut -d' ' -f1 > PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip.sha256
             if [ -f "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg" ]; then
               shasum -a 256 PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg | cut -d' ' -f1 > PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg.sha256
@@ -230,8 +235,7 @@ INFOPLIST
           else
             shasum -a 256 PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip | cut -d' ' -f1 > PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip.sha256
           fi
-        shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
-
+        shell: bash
       - name: Upload Release Package
         uses: actions/upload-artifact@v4
         with:
