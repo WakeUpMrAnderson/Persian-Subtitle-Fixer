@@ -1,4 +1,5 @@
 from sys import argv, exit
+
 from PyQt5.QtWidgets import QApplication
 
 from subtitle_fixer_gui import MainWindow
