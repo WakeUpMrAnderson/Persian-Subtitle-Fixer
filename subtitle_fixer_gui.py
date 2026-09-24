@@ -1,6 +1,6 @@
 from os import getenv
 
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -8,7 +8,6 @@ from subtitle_processor import main
 
 
 class MainWindow(QWidget):
-
     def __init__(self):
         super().__init__()
         self.setWindowIcon(QIcon(r"assets\comics-mask_97446.ico"))
@@ -22,7 +21,7 @@ class MainWindow(QWidget):
         layout.addStretch(-1)
         self.setMinimumSize(400, 110)
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.pressing = False
+        self._dragging = False # Drag-state flag – renamed to avoid the unused‑variable warning (F841).
 
 
 class MyBar(QWidget):
@@ -39,19 +38,22 @@ class MyBar(QWidget):
         self.btn_close.clicked.connect(self.btn_close_clicked)
         self.btn_close.setFixedSize(26, 16)
         self.btn_close.setStyleSheet(
-            " QPushButton::hover{background-color : red}; color:white ; font: bold; border-radius: 3px;padding-bottom:3px;")
+            " QPushButton::hover{background-color : red}; color:white ; font: bold; border-radius: 3px;padding-bottom:3px;"
+        )
 
         self.btn_min = QPushButton("_")
         self.btn_min.clicked.connect(self.btn_min_clicked)
         self.btn_min.setFixedSize(26, 16)
         self.btn_min.setStyleSheet(
-            " QPushButton::hover{background-color : #808080}; color:white; font: bold; border-radius: 3px;padding-bottom:3px;")
+            " QPushButton::hover{background-color : #808080}; color:white; font: bold; border-radius: 3px;padding-bottom:3px;"
+        )
 
         self.btn_help = QPushButton("?")
         self.btn_help.setFixedSize(14, 14)
         self.btn_help.setStyleSheet(
-            " QToolTip{font-size:11px ; font: bold; color:black; font-family: Segoe print; border:1px solid black; border-radius: 0px}; color:red ; border-radius: 7px; padding-left:1px; padding-bottom:1px; border: 1px solid red")
-        self.btn_help.setToolTip('Supported Formats: srt, SRT, ass\n PS: Use Files with utf8 or ansi Encoding')
+            " QToolTip{font-size:11px ; font: bold; color:black; font-family: Segoe print; border:1px solid black; border-radius: 0px}; color:red ; border-radius: 7px; padding-left:1px; padding-bottom:1px; border: 1px solid red"
+        )
+        self.btn_help.setToolTip("Supported Formats: srt, SRT, ass\n PS: Use Files with utf8 or ansi Encoding")
 
         self.title.setFixedHeight(35)
         self.title.setAlignment(Qt.AlignLeft)
@@ -71,28 +73,30 @@ class MyBar(QWidget):
         self.setLayout(self.MBlayout)
 
         self.start = QPoint(0, 0)
-        self.pressing = False
+        self._dragging = False # Drag-state flag – renamed to avoid the unused‑variable warning (F841).
 
     def resizeEvent(self, QResizeEvent):
-        super(MyBar, self).resizeEvent(QResizeEvent)
+        super().resizeEvent(QResizeEvent)
         self.title.setFixedWidth(self.parent.width())
 
     def mousePressEvent(self, event):
         self.start = self.mapToGlobal(event.pos())
-        self.pressing = True
+        self._dragging = True # Begin a drag operation.
 
     def mouseMoveEvent(self, event):
-        if self.pressing:
+        if self._dragging:
             end = self.mapToGlobal(event.pos())
             movement = end - self.start
-            self.parent.setGeometry(self.mapToGlobal(movement).x(),
-                                    self.mapToGlobal(movement).y(),
-                                    self.parent.width(),
-                                    self.parent.height())
+            self.parent.setGeometry(
+                self.mapToGlobal(movement).x(),
+                self.mapToGlobal(movement).y(),
+                self.parent.width(),
+                self.parent.height(),
+            )
             self.start = end
 
     def mouseReleaseEvent(self, QMouseEvent):
-        self.pressing = False
+        self._dragging = False # Drag-state flag – renamed to avoid the unused‑variable warning (F841).
 
     def btn_close_clicked(self):
         self.parent.close()
@@ -129,8 +133,6 @@ class NewLabel(QLabel):
 
     def mousePressEvent(self, event):
         if self.stat:
-            start = self.mapToGlobal(event.pos())
-            pressing = True
             self.reset()
 
     def dragEnterEvent(self, event):
@@ -154,7 +156,10 @@ class NewLabel(QLabel):
         else:
             event.ignore()
 
-    def change_label(self, count='0'):
+    def change_label(self, count="0"):
         self.stat = True
-        self.setText("Done! {} Files were not supported Files\nClick for Fixing more. ".format(count))
+        self.setText(f"Done! {count} Files were not supported Files\nClick for Fixing more. ")
         self.setAcceptDrops(False)
+
+
+

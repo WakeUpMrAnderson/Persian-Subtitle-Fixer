@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  APP_VERSION: ${{ github.ref_name }}
+
 jobs:
   build:
     name: Build on ${{ matrix.os }}
@@ -15,16 +18,10 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: PersianSubtitleFixer-Windows
-            executable_ext: .exe
           - os: ubuntu-latest
             artifact_name: PersianSubtitleFixer-Linux
-            executable_ext: ""
           - os: macos-latest
             artifact_name: PersianSubtitleFixer-macOS
-            executable_ext: .app
-
-    env:
-      APP_VERSION: ${{ github.ref_name }}
 
     steps:
       - name: Checkout repo
@@ -34,19 +31,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Install only the minimal dependencies needed
-          pip install pyinstaller==5.13.2 chardet PyQt5
-
-      - name: Install additional macOS dependencies
-        if: matrix.os == 'macos-latest'
-        run: |
-          # We'll use the built-in hdiutil instead of create-dmg for simplicity
-          echo "Using built-in hdiutil for DMG creation"
-        shell: bash
+          pip install -e .
+          pip install pyinstaller==5.13.2
 
       - name: Install UPX (Windows)
         if: matrix.os == 'windows-latest'
@@ -73,281 +64,187 @@ jobs:
         shell: bash
 
       - name: Build with PyInstaller
-        run: |
-          # Use the --clean flag to ensure a fresh build
-          pyinstaller --clean PersianSubtitleFixer.spec
+        run: pyinstaller --clean PersianSubtitleFixer.spec
 
-      - name: Clean unnecessary files (All platforms)
+      - name: Clean unnecessary files (Windows)
+        if: runner.os == 'Windows'
         run: |
-          # List of directories and file patterns to remove
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            # Remove unnecessary Qt modules and libraries
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/qml
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/bearer
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/generic
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/geometryloaders
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/imageformats/q{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}.dll
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/mediaservice
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/platforms/q{minimal,offscreen,webgl}.dll
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/playlistformats
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/position
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/printsupport
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/renderplugins
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sceneparsers
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sensorgestures
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sensors
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sqldrivers
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/texttospeech
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/webview
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/translations
-          elif [ "$RUNNER_OS" = "Linux" ]; then
-            # Remove unnecessary Qt modules and libraries
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/qml
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/bearer
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/generic
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/geometryloaders
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/imageformats/libq{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}.so
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/mediaservice
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/platforms/libq{minimal,offscreen,webgl}.so
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/playlistformats
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/position
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/printsupport
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/renderplugins
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sceneparsers
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sensorgestures
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sensors
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sqldrivers
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/texttospeech
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/webview
-            rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/translations
-          elif [ "$RUNNER_OS" = "macOS" ]; then
-            # Check if we have .app bundle or directory structure
-            if [ -d "dist/PersianSubtitleFixer.app" ]; then
-              # Remove unnecessary Qt modules from .app bundle
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/qml
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/bearer
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/generic 
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/geometryloaders
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/imageformats/libq{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}.dylib
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/mediaservice
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/platforms/libq{minimal,offscreen,webgl}.dylib
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/playlistformats
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/position
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/printsupport
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/renderplugins
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sceneparsers
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sensorgestures
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sensors
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/sqldrivers
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/texttospeech
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/plugins/webview
-              rm -rf dist/PersianSubtitleFixer.app/Contents/MacOS/PyQt5/Qt5/translations
-            else
-              # Remove unnecessary Qt modules from directory structure
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/qml
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/bearer
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/generic
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/geometryloaders
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/imageformats/libq{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}.dylib
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/mediaservice
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/platforms/libq{minimal,offscreen,webgl}.dylib
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/playlistformats
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/position
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/printsupport
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/renderplugins
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sceneparsers
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sensorgestures
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sensors
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/sqldrivers
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/texttospeech
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/plugins/webview
-              rm -rf dist/PersianSubtitleFixer/PyQt5/Qt5/translations
-            fi
-          fi
-        shell: bash
-
-      - name: Prepare release package - Windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          # Create a clean directory for release files
-          mkdir -p release
-          # Copy the executable and necessary files to release directory
-          cp -r dist/PersianSubtitleFixer/* release/
-          # Rename the main executable
-          mv release/PersianSubtitleFixer.exe release/PersianSubtitleFixer-${{ env.APP_VERSION }}.exe
+          $qtPlugins = "dist/PersianSubtitleFixer/PyQt5/Qt5/plugins"
+          $removeDirs = @(
+            "qml",
+            "bearer",
+            "generic",
+            "geometryloaders",
+            "mediaservice",
+            "playlistformats",
+            "position",
+            "printsupport",
+            "renderplugins",
+            "sceneparsers",
+            "sensorgestures",
+            "sensors",
+            "sqldrivers",
+            "texttospeech",
+            "webview"
+          )
+          $removeDirs | ForEach-Object {
+            $dir = Join-Path $qtPlugins $_
+            if (Test-Path $dir) { Remove-Item -Recurse -Force $dir }
+          }
+          # Remove image format plugins except png
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qgif.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qicns.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qjp2.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qmng.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qpdf.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qsvg.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qtga.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qtiff.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qwbmp.dll" | Remove-Item -Force
+          Get-ChildItem "$qtPlugins/imageformats" -Filter "qwebp.dll" | Remove-Item -Force
+          # Remove minimal/offscreen platform plugins
+          @("qminimal.dll","qoffscreen.dll","qwebgl.dll") | ForEach-Object {
+            $f = Join-Path "$qtPlugins/platforms" $_
+            if (Test-Path $f) { Remove-Item -Force $f }
+          }
+          Remove-Item -Recurse -Force "dist/PersianSubtitleFixer/PyQt5/Qt5/translations" -ErrorAction SilentlyContinue
         shell: pwsh
 
-      - name: Prepare release package - Linux
-        if: matrix.os == 'ubuntu-latest'
+      - name: Clean unnecessary files (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
-          # Create a clean directory for release files
-          mkdir -p release
-          # Copy all necessary files to maintain proper directory structure
-          cp -r dist/PersianSubtitleFixer/* release/
-          # Rename the main executable
-          mv release/PersianSubtitleFixer release/PersianSubtitleFixer-${{ env.APP_VERSION }}
-          # Make executable
-          chmod +x release/PersianSubtitleFixer-${{ env.APP_VERSION }}
-          # Create a shell script for easy execution
-          cat > release/run.sh << 'EOF'
-          #!/bin/bash
-          # PersianSubtitleFixer Runner Script
-          SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-          exec "$SCRIPT_DIR/PersianSubtitleFixer-${{ env.APP_VERSION }}" "$@"
-          EOF
-          chmod +x release/run.sh
+          QT_PLUGINS="dist/PersianSubtitleFixer/PyQt5/Qt5/plugins"
+          rm -rf "$QT_PLUGINS/qml"
+          rm -rf "$QT_PLUGINS/bearer"
+          rm -rf "$QT_PLUGINS/generic"
+          rm -rf "$QT_PLUGINS/geometryloaders"
+          rm -rf "$QT_PLUGINS/mediaservice"
+          rm -rf "$QT_PLUGINS/playlistformats"
+          rm -rf "$QT_PLUGINS/position"
+          rm -rf "$QT_PLUGINS/printsupport"
+          rm -rf "$QT_PLUGINS/renderplugins"
+          rm -rf "$QT_PLUGINS/sceneparsers"
+          rm -rf "$QT_PLUGINS/sensorgestures"
+          rm -rf "$QT_PLUGINS/sensors"
+          rm -rf "$QT_PLUGINS/sqldrivers"
+          rm -rf "$QT_PLUGINS/texttospeech"
+          rm -rf "$QT_PLUGINS/webview"
+          rm -f "$QT_PLUGINS/imageformats/libq"{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}".so"
+          rm -f "$QT_PLUGINS/platforms/libq"{minimal,offscreen,webgl}".so"
+          rm -rf "dist/PersianSubtitleFixer/PyQt5/Qt5/translations"
         shell: bash
 
-      - name: Prepare release package - macOS
-        if: matrix.os == 'macos-latest'
+      - name: Prepare release directory
         run: |
-          # Create a clean directory for release files
           mkdir -p release
-          
-          # Check what PyInstaller actually created
-          echo "Contents of dist directory:"
-          ls -la dist/
-          
-          # Handle both possible PyInstaller outputs: .app bundle or directory
-          if [ -d "dist/PersianSubtitleFixer.app" ]; then
-            echo "Found .app bundle"
-            cp -r dist/PersianSubtitleFixer.app release/
-            APP_PATH="release/PersianSubtitleFixer.app"
-          elif [ -d "dist/PersianSubtitleFixer" ]; then
-            echo "Found directory bundle, creating .app structure"
-            mkdir -p "release/PersianSubtitleFixer.app/Contents/MacOS"
-            mkdir -p "release/PersianSubtitleFixer.app/Contents/Resources"
-            
-            # Copy the executable and supporting files
-            cp -r dist/PersianSubtitleFixer/* "release/PersianSubtitleFixer.app/Contents/MacOS/"
-            
-            # Create Info.plist
-            cat > "release/PersianSubtitleFixer.app/Contents/Info.plist" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>PersianSubtitleFixer</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.persiansubtitlefixer.app</string>
-              <key>CFBundleName</key>
-              <string>PersianSubtitleFixer</string>
-              <key>CFBundleVersion</key>
-              <string>${{ env.APP_VERSION }}</string>
-              <key>CFBundleShortVersionString</key>
-              <string>${{ env.APP_VERSION }}</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-          </dict>
-          </plist>
-          EOF
-            APP_PATH="release/PersianSubtitleFixer.app"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp dist/PersianSubtitleFixer/PersianSubtitleFixer.exe release/
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            if [ -d "dist/PersianSubtitleFixer.app" ]; then
+              cp -r dist/PersianSubtitleFixer.app release/
+            elif [ -d "dist/PersianSubtitleFixer" ]; then
+              mkdir -p "release/PersianSubtitleFixer.app/Contents/MacOS"
+              mkdir -p "release/PersianSubtitleFixer.app/Contents/Resources"
+              cp -r dist/PersianSubtitleFixer/* "release/PersianSubtitleFixer.app/Contents/MacOS/"
+              cat > "release/PersianSubtitleFixer.app/Contents/Info.plist" << 'INFOPLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>PersianSubtitleFixer</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.persiansubtitlefixer.app</string>
+    <key>CFBundleName</key>
+    <string>PersianSubtitleFixer</string>
+    <key>CFBundleVersion</key>
+    <string>${{ env.APP_VERSION }}</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${{ env.APP_VERSION }}</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+</dict>
+</plist>
+INFOPLIST
+              chmod +x "release/PersianSubtitleFixer.app/Contents/MacOS/PersianSubtitleFixer"
+            else
+              echo "Error: Could not find PyInstaller output"
+              exit 1
+            fi
+            hdiutil create -volname "PersianSubtitleFixer ${{ env.APP_VERSION }}" \
+              -srcfolder release -ov -format UDZO \
+              "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg"
           else
-            echo "Error: Could not find PyInstaller output"
-            exit 1
+            cp dist/PersianSubtitleFixer/PersianSubtitleFixer release/
+            chmod +x release/PersianSubtitleFixer
           fi
-          
-          # Make the main executable executable
-          chmod +x "$APP_PATH/Contents/MacOS/PersianSubtitleFixer"
-          
-          # Create DMG (simplified version without icon dependencies)
-          hdiutil create -volname "PersianSubtitleFixer ${{ env.APP_VERSION }}" \
-            -srcfolder release \
-            -ov -format UDZO \
-            "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg"
-            
-          echo "DMG created successfully"
         shell: bash
 
       - name: Windows Code Signing (optional)
         if: matrix.os == 'windows-latest'
         shell: bash
+        env:
+          WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
         run: |
-          # Check if we have valid certificate data
           if [[ -n "$WINDOWS_CERT_BASE64" && "$WINDOWS_CERT_BASE64" != " " && -n "$WINDOWS_CERT_PASSWORD" && "$WINDOWS_CERT_PASSWORD" != " " ]]; then
             echo "Signing executable..."
             certPath="$RUNNER_TEMP/cert.pfx"
             echo "$WINDOWS_CERT_BASE64" | base64 -d > "$certPath"
             "/c/Program Files (x86)/Windows Kits/10/bin/x64/signtool.exe" sign \
-              /f "$certPath" \
-              /p "$WINDOWS_CERT_PASSWORD" \
-              /tr http://timestamp.digicert.com \
-              /td sha256 \
-              /fd sha256 \
+              /f "$certPath" /p "$WINDOWS_CERT_PASSWORD" \
+              /tr http://timestamp.digicert.com /td sha256 /fd sha256 \
               release/PersianSubtitleFixer-${{ env.APP_VERSION }}.exe
           else
-            echo "Skipping code signing - certificate information not provided or empty"
+            echo "Skipping code signing - certificate information not provided"
           fi
-        env:
-          WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
-          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
 
-      - name: Create release archive - Windows
+      - name: Create release archive (Windows)
         if: runner.os == 'Windows'
         run: |
           cd release
           Compress-Archive -Path .\* -DestinationPath ..\PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip
         shell: pwsh
-        
-      - name: Create release archive - Linux
-        if: runner.os == 'Linux'
-        run: |
-          cd release
-          zip -r ../PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip *
-        shell: bash
 
-      - name: Handle macOS release - DMG exists
-        if: runner.os == 'macOS'
+      - name: Create release archive (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
-          # Check if DMG was created successfully
-          if [ -f "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg" ]; then
-            echo "DMG created successfully"
-            # Create a zip as backup
+          if [ "$RUNNER_OS" = "macOS" ]; then
             cd release
             zip -r ../PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip *
-            cd ..
           else
-            echo "DMG creation failed, creating zip archive"
             cd release
-            zip -r ../PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip *
-            cd ..
+            zip -r ../PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip *
           fi
         shell: bash
-
-      - name: Generate SHA256 checksum - Windows
+      - name: Generate SHA256 checksum (Windows)
         if: runner.os == 'Windows'
         run: |
           $hash = (Get-FileHash -Algorithm SHA256 -Path PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip).Hash.ToLower()
           $hash | Out-File -FilePath PersianSubtitleFixer-Windows-${{ env.APP_VERSION }}.zip.sha256 -Encoding ascii
         shell: pwsh
 
-      - name: Generate SHA256 checksum - Linux
-        if: runner.os == 'Linux'
+      - name: Generate SHA256 checksum (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
-          shasum -a 256 PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip | cut -d' ' -f1 > PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip.sha256
-        shell: bash
-
-      - name: Generate SHA256 checksum - macOS
-        if: runner.os == 'macOS'
-        run: |
-          # Generate checksum for zip
-          shasum -a 256 PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip | cut -d' ' -f1 > PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip.sha256
-          # Generate checksum for DMG if it exists
-          if [ -f "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg" ]; then
-            shasum -a 256 PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg | cut -d' ' -f1 > PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg.sha256
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            shasum -a 256 PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip | cut -d' ' -f1 > PersianSubtitleFixer-macOS-${{ env.APP_VERSION }}.zip.sha256
+            if [ -f "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg" ]; then
+              shasum -a 256 PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg | cut -d' ' -f1 > PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg.sha256
+            fi
+          else
+            shasum -a 256 PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip | cut -d' ' -f1 > PersianSubtitleFixer-Linux-${{ env.APP_VERSION }}.zip.sha256
           fi
         shell: bash
-
       - name: Upload Release Package
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}-${{ env.APP_VERSION }}
           path: |
-            PersianSubtitleFixer-*-${{ env.APP_VERSION }}.zip
-            PersianSubtitleFixer-*-${{ env.APP_VERSION }}.zip.sha256
-            PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg
-            PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg.sha256
+            PersianSubtitleFixer-*.zip
+            PersianSubtitleFixer-*.zip.sha256
+            PersianSubtitleFixer-*.dmg
+            PersianSubtitleFixer-*.dmg.sha256
 
   release:
     needs: build
@@ -358,14 +255,10 @@ jobs:
         with:
           path: artifacts
 
-      - name: List artifacts
-        run: ls -R artifacts
-        shell: bash
-
       - name: Prepare release files
         run: |
           mkdir -p release_files
-          find artifacts -name "*.zip" -o -name "*.sha256" -o -name "*.dmg" | xargs -I{} cp {} release_files/
+          find artifacts -type f \( -name "*.zip" -o -name "*.sha256" -o -name "*.dmg" \) -exec cp {} release_files/ \;
         shell: bash
 
       - name: Publish GitHub Release
@@ -375,29 +268,29 @@ jobs:
           generate_release_notes: true
           body: |
             # PersianSubtitleFixer ${{ github.ref_name }}
-            
+
             ## Installation Instructions
-            
+
             ### Windows
             - Download `PersianSubtitleFixer-Windows-${{ github.ref_name }}.zip`
             - Extract the zip file
             - Run `PersianSubtitleFixer-${{ github.ref_name }}.exe`
-            
+
             ### macOS
             - Download `PersianSubtitleFixer-${{ github.ref_name }}.dmg` (recommended)
             - Or download `PersianSubtitleFixer-macOS-${{ github.ref_name }}.zip`
             - For DMG: Open the DMG file and drag the app to Applications folder
             - For ZIP: Extract and double-click the `.app` bundle
-            
+
             ### Linux
             - Download `PersianSubtitleFixer-Linux-${{ github.ref_name }}.zip`
             - Extract the zip file
             - Make the file executable: `chmod +x PersianSubtitleFixer-${{ github.ref_name }}`
-            - Run: `./PersianSubtitleFixer-${{ github.ref_name }}` or use the provided `run.sh` script
-            
+            - Run: `./PersianSubtitleFixer-${{ github.ref_name }}`
+
             ## SHA256 Checksums
-            Each release file has a corresponding .sha256 file containing the file's checksum for verification.
-            
+            Each release file has a corresponding .sha256 file for verification.
+
             ## System Requirements
             - **Windows**: Windows 10 or later
             - **macOS**: macOS 10.14 or later
