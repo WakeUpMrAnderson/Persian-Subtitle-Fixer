@@ -21,7 +21,7 @@ class MainWindow(QWidget):
         layout.addStretch(-1)
         self.setMinimumSize(400, 110)
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.pressing = False
+        self._dragging = False # Drag-state flag – renamed to avoid the unused‑variable warning (F841).
 
 
 class MyBar(QWidget):
@@ -73,7 +73,7 @@ class MyBar(QWidget):
         self.setLayout(self.MBlayout)
 
         self.start = QPoint(0, 0)
-        self.pressing = False
+        self._dragging = False # Drag-state flag – renamed to avoid the unused‑variable warning (F841).
 
     def resizeEvent(self, QResizeEvent):
         super().resizeEvent(QResizeEvent)
@@ -81,10 +81,10 @@ class MyBar(QWidget):
 
     def mousePressEvent(self, event):
         self.start = self.mapToGlobal(event.pos())
-        self.pressing = True
+        self._dragging = True # Begin a drag operation.
 
     def mouseMoveEvent(self, event):
-        if self.pressing:
+        if self._dragging:
             end = self.mapToGlobal(event.pos())
             movement = end - self.start
             self.parent.setGeometry(
@@ -96,7 +96,7 @@ class MyBar(QWidget):
             self.start = end
 
     def mouseReleaseEvent(self, QMouseEvent):
-        self.pressing = False
+        self._dragging = False # Drag-state flag – renamed to avoid the unused‑variable warning (F841).
 
     def btn_close_clicked(self):
         self.parent.close()
@@ -133,8 +133,6 @@ class NewLabel(QLabel):
 
     def mousePressEvent(self, event):
         if self.stat:
-            start = self.mapToGlobal(event.pos())
-            pressing = True
             self.reset()
 
     def dragEnterEvent(self, event):
@@ -162,3 +160,6 @@ class NewLabel(QLabel):
         self.stat = True
         self.setText(f"Done! {count} Files were not supported Files\nClick for Fixing more. ")
         self.setAcceptDrops(False)
+
+
+

@@ -79,20 +79,13 @@ def fixer(Fpath, Form):
                 fd.write(content)
 
             return True, f"Successfully converted Persian/Arabic subtitle from {used_encoding} to UTF-8"
-    except Exception as e:
+    except (UnicodeDecodeError, OSError) as e:
         return False, f"Error processing file: {e!s}"
 
 
 def Fcheck(Fpath):
-    if path.isdir(Fpath):
-        # print("\nIt is a directory")
-        return False
-    elif path.isfile(Fpath):
-        # print("\nIt is a normal file")
-        return True
-    else:
-        # print("It is a special file (socket, FIFO, device file)")
-        return False
+    # Return True if it's a regular file, False for directories or special files
+    return path.isfile(Fpath)
 
 
 def useless(Dfile):
@@ -115,3 +108,4 @@ def main(Flist):
                 fixer(items, useless(items))
                 sleep(0.2)
     return total - count
+
