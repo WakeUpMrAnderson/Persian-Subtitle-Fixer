@@ -55,7 +55,7 @@ jobs:
         run: brew install upx
         shell: bash
       - name: Build with PyInstaller
-        run: pyinstaller --clean PersianSubtitleFixer.spec
+        run: python -m PyInstaller --clean PersianSubtitleFixer.spec
       - name: Prepare release directory
         run: |
           mkdir -p release
