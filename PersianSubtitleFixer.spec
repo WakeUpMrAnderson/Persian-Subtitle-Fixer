@@ -39,11 +39,6 @@ exe = EXE(
     icon='assets/comics-mask_97446.ico'
 )
 
-app = BUNDLE(exe,
-             name='PersianSubtitleFixer.app',
-             icon="assets/comics-mask_97446.icns",
-             bundle_identifier='com.persiansubtitlefixer.app')
-
 coll = COLLECT(
     exe,
     a.binaries,
@@ -54,3 +49,10 @@ coll = COLLECT(
     upx_exclude=[],
     name='PersianSubtitleFixer'
 )
+
+# BUNDLE must wrap the COLLECT result, not the EXE — wrapping EXE produces
+# a hollow .app missing PyQt5/python dylib (verified via v0.2.1-test3 artifact)
+app = BUNDLE(coll,
+             name='PersianSubtitleFixer.app',
+             icon="assets/comics-mask_97446.icns",
+             bundle_identifier='com.persiansubtitlefixer.app')
