@@ -174,26 +174,26 @@ jobs:
               mkdir -p "release/PersianSubtitleFixer.app/Contents/MacOS"
               mkdir -p "release/PersianSubtitleFixer.app/Contents/Resources"
               cp -r dist/PersianSubtitleFixer/* "release/PersianSubtitleFixer.app/Contents/MacOS/"
-              cat > "release/PersianSubtitleFixer.app/Contents/Info.plist" << 'INFOPLIST'
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-                <key>CFBundleExecutable</key>
-                <string>PersianSubtitleFixer</string>
-                <key>CFBundleIdentifier</key>
-                <string>com.persiansubtitlefixer.app</string>
-                <key>CFBundleName</key>
-                <string>PersianSubtitleFixer</string>
-                <key>CFBundleVersion</key>
-                <string>${{ env.APP_VERSION }}</string>
-                <key>CFBundleShortVersionString</key>
-                <string>${{ env.APP_VERSION }}</string>
-                <key>CFBundlePackageType</key>
-                <string>APPL</string>
-            </dict>
-            </plist>
-            INFOPLIST
+              printf '%s\n' \
+                '<?xml version="1.0" encoding="UTF-8"?>' \
+                '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+                '<plist version="1.0">' \
+                '<dict>' \
+                '  <key>CFBundleExecutable</key>' \
+                '  <string>PersianSubtitleFixer</string>' \
+                '  <key>CFBundleIdentifier</key>' \
+                '  <string>com.persiansubtitlefixer.app</string>' \
+                '  <key>CFBundleName</key>' \
+                '  <string>PersianSubtitleFixer</string>' \
+                '  <key>CFBundleVersion</key>' \
+                '  <string>${{ env.APP_VERSION }}</string>' \
+                '  <key>CFBundleShortVersionString</key>' \
+                '  <string>${{ env.APP_VERSION }}</string>' \
+                '  <key>CFBundlePackageType</key>' \
+                '  <string>APPL</string>' \
+                '</dict>' \
+                '</plist>' \
+                > "release/PersianSubtitleFixer.app/Contents/Info.plist"
               chmod +x "release/PersianSubtitleFixer.app/Contents/MacOS/PersianSubtitleFixer"
             else
               echo "Error: Could not find PyInstaller output"
