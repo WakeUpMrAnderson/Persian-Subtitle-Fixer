@@ -166,7 +166,8 @@ jobs:
         run: |
           mkdir -p release
           if [ "$RUNNER_OS" = "Windows" ]; then
-            cp dist/PersianSubtitleFixer/PersianSubtitleFixer.exe release/
+            # One-folder bundle: exe needs python311.dll, _internal/ and PyQt5 beside it
+            cp -r dist/PersianSubtitleFixer/* release/
           elif [ "$RUNNER_OS" = "macOS" ]; then
             if [ -d "dist/PersianSubtitleFixer.app" ]; then
               cp -r dist/PersianSubtitleFixer.app release/
@@ -203,7 +204,8 @@ jobs:
               -srcfolder release -ov -format UDZO \
               "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg"
           else
-            cp dist/PersianSubtitleFixer/PersianSubtitleFixer release/
+            # One-folder bundle: binary needs bundled libs and PyQt5 beside it
+            cp -r dist/PersianSubtitleFixer/* release/
             chmod +x release/PersianSubtitleFixer
           fi
         shell: bash
