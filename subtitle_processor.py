@@ -108,4 +108,3 @@ def main(Flist):
                 fixer(items, useless(items))
                 sleep(0.2)
     return total - count
-
