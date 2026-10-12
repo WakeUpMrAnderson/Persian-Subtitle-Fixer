@@ -147,4 +147,9 @@ $RECYCLE.BIN/
 *.deb
 *.rpm
 *.run
-*.out 
+*.out
+
+# Tooling
+.codebase-memory/
+.serena/
+
