@@ -1,25 +1,53 @@
-"""Sub Fixer GUI - solid custom titlebar + translucent "liquid glass" body.
+"""Sub Fixer GUI - solid custom titlebar + winotch-style dark glass body.
 
-The window is frameless with per-pixel alpha (WA_TranslucentBackground):
-  * everything painted opaque (the titlebar) is solid;
-  * everything painted translucent (the body) lets the desktop show through
-    with a light glass haze - no snapshots, no DWM blur, pure Qt painting.
-The drop zone keeps the original look: 3px dashed red border, bold
-Segoe print, same text. DWM is used for cosmetics only (dark tint
-awareness, rounded-corner preference, no 1px window border).
+The window is frameless with per-pixel alpha (WA_TranslucentBackground).
+The visual language is borrowed from yappologistic/winotch, whose entire
+"liquid glass" look is pure painting on a transparent window - no acrylic,
+no DWM backdrop, no blur of the desktop:
+  * near-black shell (#050505) with large rounded corners,
+  * soft floating drop shadow around the shell,
+  * hairline stroke + specular gloss for the glassy read.
+Here the body keeps a hint of see-through (GLASS_ALPHA) so the desktop
+shows through as a dark haze; the titlebar stays fully opaque.
+The drop zone keeps its 3px dashed red border, bold Segoe print and same
+texts - in white, because black text is unreadable on the dark shell.
+DWM is used for cosmetics only (dark tint, rounded-corner preference,
+no 1px window border).
 """
 
 import ctypes
 from os import getenv
 
 from PyQt5.QtCore import QPoint, QRectF, Qt
-from PyQt5.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPainterPath, QPen
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt5.QtGui import (
+    QColor,
+    QIcon,
+    QImage,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
+)
+from PyQt5.QtWidgets import (
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from subtitle_processor import main
 
 BAR_HEIGHT = 36
-RADIUS = 12
+RADIUS = 18  # winotch-style generous corner rounding
+SHADOW_MARGIN = 16  # transparent frame around the shell for the drop shadow
+
+# winotch palette (App.xaml: NotchBlack #050505) with a translucent take
+SHELL_RGB = (5, 5, 5)
+GLASS_ALPHA = 205  # 255 = fully opaque like winotch; lower = more see-through
+HAIRLINE_ALPHA = 18  # 1px stroke around the shell
 
 # DWM cosmetics (values are stable across Win10/11)
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
@@ -45,14 +73,15 @@ class MainWindow(QWidget):
         self.setWindowIcon(QIcon(r"assets\comics-mask_97446.ico"))
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setMinimumSize(400, 110)
-        self.resize(430, 118)  # original ~400x110 proportions
+        self.setMinimumSize(400 + 2 * SHADOW_MARGIN, 110 + 2 * SHADOW_MARGIN)
+        self.resize(430 + 2 * SHADOW_MARGIN, 118 + 2 * SHADOW_MARGIN)
         self._dragging = False
+        self._shadow = None  # cached drop-shadow pixmap, rebuilt on resize
 
-        # dashed border inset from the glass edge: left/right = 7+5 (stylesheet
+        # dashed border inset from the shell edge: left/right = 7+5 (stylesheet
         # margin) = 12, bottom = 12, and spacing puts the top gap at 12 too
         layout = QVBoxLayout()
-        layout.setContentsMargins(7, 0, 7, 12)
+        layout.setContentsMargins(SHADOW_MARGIN + 7, SHADOW_MARGIN, SHADOW_MARGIN + 7, SHADOW_MARGIN + 12)
         layout.setSpacing(12)
         self.bar = MyBar(self)
         self.bar.setFixedHeight(BAR_HEIGHT)
@@ -66,55 +95,84 @@ class MainWindow(QWidget):
             self._cosmetics_done = True
             _apply_dwm_cosmetics(int(self.winId()))
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._shadow = None  # shadow must match the new window size
+
+    def _shell_rect(self) -> QRectF:
+        m = SHADOW_MARGIN
+        return QRectF(m, m, self.width() - 2 * m - 2, self.height() - 2 * m - 2)
+
+    def _shadow_pixmap(self) -> QPixmap:
+        """Soft shadow around the shell, winotch DropShadowEffect-style.
+
+        A rounded rect is rasterized and blurred with the cheap
+        downscale -> smooth upscale trick (no effects framework needed).
+        """
+        w, h = self.width(), self.height()
+        img = QImage(w, h, QImage.Format_ARGB32_Premultiplied)
+        img.fill(Qt.transparent)
+        pt = QPainter(img)
+        pt.setRenderHint(QPainter.Antialiasing)
+        pt.setPen(Qt.NoPen)
+        pt.setBrush(QColor(0, 0, 0, 120))
+        s = self._shell_rect()
+        pt.drawRoundedRect(s, RADIUS, RADIUS)
+        pt.end()
+
+        small = img.scaled(max(1, w // 8), max(1, h // 8), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+        big = small.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+        return QPixmap.fromImage(big)
+
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        r = QRectF(self.rect()).adjusted(1.0, 1.0, -1.0, -1.0)
 
+        if self._shadow is None:
+            self._shadow = self._shadow_pixmap()
+        p.drawPixmap(0, 0, self._shadow)
+
+        r = self._shell_rect()
         shape = QPainterPath()
         shape.addRoundedRect(r, RADIUS, RADIUS)
+        shell = QColor(*SHELL_RGB)
 
-        # -- glass body: translucent white layers only, so the desktop shows
-        #    through hazed. Square top edge (under the titlebar), rounded bottom.
+        # -- smoked-glass body: the desktop shows through as a dark haze.
+        #    Square top edge (under the titlebar), rounded bottom.
         cut = QRectF(r.left(), r.top() + BAR_HEIGHT - RADIUS, r.width(), r.height() - BAR_HEIGHT + RADIUS)
         cut_path = QPainterPath()
         cut_path.addRect(cut)
         body = shape.intersected(cut_path)
 
-        glass = QLinearGradient(r.topLeft(), r.bottomLeft())
-        glass.setColorAt(0.00, QColor(255, 255, 255, 215))
-        glass.setColorAt(0.50, QColor(255, 255, 255, 160))
-        glass.setColorAt(1.00, QColor(255, 255, 255, 185))
+        glass = QColor(shell)
+        glass.setAlpha(GLASS_ALPHA)
         p.fillPath(body, glass)
 
-        # faint depth at the bottom edge of the pane
+        # depth: slightly darker toward the bottom edge of the pane
         depth = QLinearGradient(r.topLeft(), r.bottomLeft())
-        depth.setColorAt(0.85, QColor(0, 0, 0, 0))
-        depth.setColorAt(1.00, QColor(0, 0, 0, 26))
+        depth.setColorAt(0.75, QColor(0, 0, 0, 0))
+        depth.setColorAt(1.00, QColor(0, 0, 0, 60))
         p.fillPath(body, depth)
 
-        # light catching the top bevel, right under the titlebar (stays
-        # inside the 12px glass gap above the dashed border)
+        # specular gloss catching light right under the titlebar
         streak = QRectF(r.left() + 2, r.top() + BAR_HEIGHT, r.width() - 4, 10)
         glow = QLinearGradient(streak.topLeft(), streak.bottomLeft())
-        glow.setColorAt(0.0, QColor(255, 255, 255, 60))
+        glow.setColorAt(0.0, QColor(255, 255, 255, 28))
         glow.setColorAt(1.0, QColor(255, 255, 255, 0))
         streak_path = QPainterPath()
         streak_path.addRoundedRect(streak, 10, 10)
         p.fillPath(body.intersected(streak_path), glow)
 
-        # -- solid titlebar (kept solid on purpose)
-        black = QPainterPath()
-        black.addRoundedRect(r, RADIUS, RADIUS)
+        # -- solid titlebar (winotch NotchBlack, fully opaque)
         top = QPainterPath()
         top.addRect(QRectF(r.left(), r.top(), r.width(), BAR_HEIGHT))
-        p.fillPath(black.intersected(top), QColor(0, 0, 0, 255))
-        p.fillRect(QRectF(r.left(), r.top() + BAR_HEIGHT, r.width(), 1), QColor(255, 255, 255, 30))
-        rim = QLinearGradient(r.topLeft(), r.bottomRight())
-        rim.setColorAt(0.00, QColor(255, 255, 255, 200))
-        rim.setColorAt(0.40, QColor(255, 255, 255, 70))
-        rim.setColorAt(1.00, QColor(255, 255, 255, 130))
-        p.strokePath(shape, QPen(QBrush(rim), 1.2))
+        p.fillPath(shape.intersected(top), shell)
+
+        # hairline separating titlebar from the glass
+        p.fillRect(QRectF(r.left(), r.top() + BAR_HEIGHT, r.width(), 1), QColor(255, 255, 255, 26))
+
+        # -- hairline stroke around the shell (winotch-style edge definition)
+        p.strokePath(shape, QPen(QColor(255, 255, 255, HAIRLINE_ALPHA), 1))
 
 
 class MyBar(QWidget):
@@ -156,7 +214,7 @@ class MyBar(QWidget):
         self.btn_min.setStyleSheet(
             "QPushButton{color:white; font:bold; border-radius:3px;"
             " padding-bottom:3px; background:transparent;}"
-            " QPushButton:hover{background-color:#808080;}"
+            " QPushButton:hover{background-color:#2a2a2a;}"
         )
 
         self.btn_help = QPushButton("?")
@@ -207,11 +265,17 @@ class NewLabel(QLabel):
                      margin-left:5px;
                      margin-right:5px;
                      padding:5px;
-                     color: Black;
+                     color: White;
                      font: bold;
                      font-family: Segoe print;
 
                  """)
+
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(6)
+        shadow.setOffset(0, 1)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        self.setGraphicsEffect(shadow)
 
     def reset(self):
         self.setAcceptDrops(True)
