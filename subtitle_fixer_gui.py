@@ -13,6 +13,8 @@ border); corner rounding is ours, never DWM's.
 """
 
 import ctypes
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _dist_version
 from os import getenv
 
 from PyQt6.QtCore import QPoint, QPointF, QRectF, Qt
@@ -158,8 +160,19 @@ class MainWindow(QWidget):
         p.strokePath(inner, QPen(QColor(255, 255, 255, INNER_EDGE_ALPHA), 1))
 
 
+def _app_version() -> str:
+    """Version shown on the titlebar. Frozen builds read the bundled
+    package metadata (single source of truth: pyproject.toml). The old
+    APP_VERSION env var only existed during the CI build, so packaged
+    apps always fell back to 0.0.0 - kept as a dev fallback."""
+    try:
+        return _dist_version("persian-subtitle-fixer")
+    except PackageNotFoundError:
+        return getenv("APP_VERSION", "0.0.0")
+
+
 class MyBar(QWidget):
-    __version__ = getenv("APP_VERSION", "0.0.0")
+    __version__ = _app_version()
 
     def __init__(self, parent):
         super().__init__(parent)

@@ -1,17 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import copy_metadata
+
 block_cipher = None
+
+# bundle the package metadata so importlib.metadata.version() works in
+# frozen builds (the titlebar version comes from it)
+metadata_datas = copy_metadata('persian-subtitle-fixer')
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('assets/comics-mask_97446.ico', 'assets')],
+    datas=[('assets/comics-mask_97446.ico', 'assets')] + metadata_datas,
     hiddenimports=['PyQt6.sip'],  # Reduced hiddenimports to only what's essential
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['_gtkagg', '_tkagg', 'blib2to3', 'distutils', 'email', 'ftplib', 'html', 'http', 'lib2to3', 'numpy', 'pandas', 'pydoc_data', 'pytz', 'test', 'unittest', 'xml'],  # Exclude unnecessary modules
+    # NOTE: 'email' must stay out of this list - importlib.metadata (used
+    # for the titlebar version) imports it internally
+    excludes=['_gtkagg', '_tkagg', 'blib2to3', 'distutils', 'ftplib', 'html', 'http', 'lib2to3', 'numpy', 'pandas', 'pydoc_data', 'pytz', 'test', 'unittest', 'xml'],  # Exclude unnecessary modules
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
