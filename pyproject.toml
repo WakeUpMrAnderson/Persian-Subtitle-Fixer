@@ -1,9 +1,11 @@
 [project]
 name = "persian-subtitle-fixer"
-version = "0.4.5"
 description = "Fix Persian/Arabic subtitle encoding issues in SRT and ASS files"
 readme = "README.md"
 requires-python = ">=3.10"
+# version is derived from git tags by setuptools-scm - tag vX.Y.Z and the
+# built app reports X.Y.Z. No manual bumps.
+dynamic = ["version"]
 dependencies = [
     "PyQt6==6.12.0",
     "PyQt6-sip==13.13.0",
@@ -11,8 +13,14 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 py-modules = ["main", "subtitle_processor", "subtitle_fixer_gui"]
+
+[tool.setuptools_scm]
+# on a tagged commit: version = the tag (v0.4.5 -> 0.4.5)
+# between tags: next-dev version (e.g. 0.4.6.dev1+g<sha>)
+fallback_version = "0.0.0"
+local_scheme = "no-local-version"
