@@ -15,10 +15,11 @@ border); corner rounding is ours, never DWM's.
 import ctypes
 from os import getenv
 
-from PyQt6.QtCore import QPoint, QRectF, Qt
+from PyQt6.QtCore import QPoint, QPointF, QRectF, Qt
 from PyQt6.QtGui import (
     QBrush,
     QColor,
+    QFontMetrics,
     QIcon,
     QLinearGradient,
     QPainter,
@@ -235,29 +236,80 @@ class MyBar(QWidget):
 
 
 class NewLabel(QLabel):
+    """Drop zone, custom-painted: dashed red border + text drawn as
+    QPainterPath with a dark stroke, so the white glyphs keep a visible
+    contour and stay readable even over white windows."""
+
+    BORDER_INSET = 6  # dashed border inset from the label edge
+    PAD = 6  # text padding inside the border
+    STROKE_WIDTH = 4.5  # dark outline around the glyphs
+
     def __init__(self, parent):
-        super().__init__()
+        super().__init__(parent)
         self.parent = parent
         self.stat = False
         self.setAcceptDrops(True)
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setText("Drag & Drop your Subtitle here.\nEnjoy ;)")
-        self.setStyleSheet("""
-                     border: 3px dashed red;
-                     margin-left:5px;
-                     margin-right:5px;
-                     padding:5px;
-                     color: White;
-                     font: bold;
-                     font-family: Segoe print;
 
-                 """)
+        font = self.font()
+        font.setFamily("Segoe print")
+        font.setBold(True)
+        self.setFont(font)
 
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(6)
         shadow.setOffset(0, 1)
         shadow.setColor(QColor(0, 0, 0, 160))
         self.setGraphicsEffect(shadow)
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # dashed red border, same look as the old stylesheet border
+        box = self.rect().adjusted(
+            self.BORDER_INSET, self.BORDER_INSET, -(self.BORDER_INSET + 1), -(self.BORDER_INSET + 1)
+        )
+        p.setPen(QPen(QColor("red"), 3, Qt.PenStyle.DashLine))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawRect(box)
+
+        text = self.text()
+        if not text:
+            return
+
+        # text as paths: dark stroke first, white fill on top - the glyphs
+        # keep a dark contour that reads on any background
+        fm = QFontMetrics(self.font())
+        area = self.rect().adjusted(
+            self.BORDER_INSET + self.PAD,
+            self.BORDER_INSET + self.PAD,
+            -(self.BORDER_INSET + self.PAD),
+            -(self.BORDER_INSET + self.PAD),
+        )
+        lines = text.split("\n")
+        line_h = fm.lineSpacing()
+        y = area.top() + (area.height() - len(lines) * line_h) / 2 + fm.ascent()
+        path = QPainterPath()
+        for line in lines:
+            x = area.left() + (area.width() - fm.horizontalAdvance(line)) / 2
+            path.addText(QPointF(x, y), self.font(), line)
+            y += line_h
+
+        p.setPen(
+            QPen(
+                QColor(15, 15, 15, 235),
+                self.STROKE_WIDTH,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+                Qt.PenJoinStyle.RoundJoin,
+            )
+        )
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawPath(path)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor("white"))
+        p.drawPath(path)
 
     def reset(self):
         self.setAcceptDrops(True)
