@@ -5,7 +5,6 @@ The visual language is borrowed from yappologistic/winotch, whose entire
 "liquid glass" look is pure painting on a transparent window - no acrylic,
 no DWM backdrop, no blur of the desktop:
   * near-black shell (#050505) with large rounded corners,
-  * soft floating drop shadow around the shell,
   * hairline stroke + specular gloss for the glassy read.
 Here the body keeps a hint of see-through (GLASS_ALPHA) so the desktop
 shows through as a dark haze; the titlebar stays fully opaque.
@@ -19,16 +18,7 @@ import ctypes
 from os import getenv
 
 from PyQt5.QtCore import QPoint, QRectF, Qt
-from PyQt5.QtGui import (
-    QColor,
-    QIcon,
-    QImage,
-    QLinearGradient,
-    QPainter,
-    QPainterPath,
-    QPen,
-    QPixmap,
-)
+from PyQt5.QtGui import QColor, QIcon, QLinearGradient, QPainter, QPainterPath, QPen
 from PyQt5.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
@@ -42,7 +32,6 @@ from subtitle_processor import main
 
 BAR_HEIGHT = 36
 RADIUS = 18  # winotch-style generous corner rounding
-SHADOW_MARGIN = 16  # transparent frame around the shell for the drop shadow
 
 # winotch palette (App.xaml: NotchBlack #050505) with a translucent take
 SHELL_RGB = (5, 5, 5)
@@ -73,15 +62,14 @@ class MainWindow(QWidget):
         self.setWindowIcon(QIcon(r"assets\comics-mask_97446.ico"))
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setMinimumSize(400 + 2 * SHADOW_MARGIN, 110 + 2 * SHADOW_MARGIN)
-        self.resize(430 + 2 * SHADOW_MARGIN, 118 + 2 * SHADOW_MARGIN)
+        self.setMinimumSize(400, 110)
+        self.resize(430, 118)  # original ~400x110 proportions
         self._dragging = False
-        self._shadow = None  # cached drop-shadow pixmap, rebuilt on resize
 
         # dashed border inset from the shell edge: left/right = 7+5 (stylesheet
         # margin) = 12, bottom = 12, and spacing puts the top gap at 12 too
         layout = QVBoxLayout()
-        layout.setContentsMargins(SHADOW_MARGIN + 7, SHADOW_MARGIN, SHADOW_MARGIN + 7, SHADOW_MARGIN + 12)
+        layout.setContentsMargins(7, 0, 7, 12)
         layout.setSpacing(12)
         self.bar = MyBar(self)
         self.bar.setFixedHeight(BAR_HEIGHT)
@@ -95,44 +83,11 @@ class MainWindow(QWidget):
             self._cosmetics_done = True
             _apply_dwm_cosmetics(int(self.winId()))
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._shadow = None  # shadow must match the new window size
-
-    def _shell_rect(self) -> QRectF:
-        m = SHADOW_MARGIN
-        return QRectF(m, m, self.width() - 2 * m - 2, self.height() - 2 * m - 2)
-
-    def _shadow_pixmap(self) -> QPixmap:
-        """Soft shadow around the shell, winotch DropShadowEffect-style.
-
-        A rounded rect is rasterized and blurred with the cheap
-        downscale -> smooth upscale trick (no effects framework needed).
-        """
-        w, h = self.width(), self.height()
-        img = QImage(w, h, QImage.Format_ARGB32_Premultiplied)
-        img.fill(Qt.transparent)
-        pt = QPainter(img)
-        pt.setRenderHint(QPainter.Antialiasing)
-        pt.setPen(Qt.NoPen)
-        pt.setBrush(QColor(0, 0, 0, 120))
-        s = self._shell_rect()
-        pt.drawRoundedRect(s, RADIUS, RADIUS)
-        pt.end()
-
-        small = img.scaled(max(1, w // 8), max(1, h // 8), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        big = small.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        return QPixmap.fromImage(big)
-
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
 
-        if self._shadow is None:
-            self._shadow = self._shadow_pixmap()
-        p.drawPixmap(0, 0, self._shadow)
-
-        r = self._shell_rect()
+        r = QRectF(self.rect()).adjusted(1.0, 1.0, -1.0, -1.0)
         shape = QPainterPath()
         shape.addRoundedRect(r, RADIUS, RADIUS)
         shell = QColor(*SHELL_RGB)
