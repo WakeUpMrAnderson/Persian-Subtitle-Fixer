@@ -40,8 +40,6 @@ HAIRLINE_ALPHA = 18  # 1px stroke around the shell
 
 # DWM cosmetics (values are stable across Win10/11)
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
-DWMWA_WINDOW_CORNER_PREFERENCE = 33
-DWMWCP_ROUND = 2
 DWMWA_BORDER_COLOR = 34
 DWMWA_COLOR_NONE = 0xFFFFFFFE
 
@@ -50,8 +48,10 @@ def _apply_dwm_cosmetics(hwnd: int) -> None:
     dwm = ctypes.windll.dwmapi
     dark = ctypes.c_int(1)
     dwm.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(dark), ctypes.sizeof(dark))
-    corner = ctypes.c_int(DWMWCP_ROUND)
-    dwm.DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ctypes.byref(corner), ctypes.sizeof(corner))
+    # NOTE: no DWMWA_WINDOW_CORNER_PREFERENCE here on purpose. DWM rounds the
+    # window at ~8px, which leaves the sliver between DWM's arc and our 18px
+    # painted arc visible-but-unpainted, and that sliver composites as WHITE.
+    # Our painted rounded corners are the only rounding.
     border = ctypes.c_uint(DWMWA_COLOR_NONE)
     dwm.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
 
@@ -61,6 +61,7 @@ class MainWindow(QWidget):
         super().__init__()
         self.setWindowIcon(QIcon(r"assets\comics-mask_97446.ico"))
         self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowTitle("Sub Fixer")  # targetable even though the titlebar is custom
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setMinimumSize(400, 110)
         self.resize(430, 118)  # original ~400x110 proportions
