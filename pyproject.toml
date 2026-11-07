@@ -1,6 +1,6 @@
 [project]
 name = "persian-subtitle-fixer"
-version = "0.3.1"
+version = "0.4.0"
 description = "Fix Persian/Arabic subtitle encoding issues in SRT and ASS files"
 readme = "README.md"
 requires-python = ">=3.9"
