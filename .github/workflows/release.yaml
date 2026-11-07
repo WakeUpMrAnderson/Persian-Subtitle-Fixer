@@ -66,7 +66,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install pyinstaller==5.13.2
+          pip install pyinstaller==6.22.3
 
       - name: Install UPX (Windows)
         if: matrix.os == 'windows-latest'
@@ -98,7 +98,7 @@ jobs:
       - name: Clean unnecessary files (Windows)
         if: runner.os == 'Windows'
         run: |
-          $qtPlugins = "dist/PersianSubtitleFixer/PyQt5/Qt5/plugins"
+          $qtPlugins = "dist/PersianSubtitleFixer/_internal/PyQt6/Qt6/plugins"
           $removeDirs = @(
             "qml",
             "bearer",
@@ -135,13 +135,13 @@ jobs:
             $f = Join-Path "$qtPlugins/platforms" $_
             if (Test-Path $f) { Remove-Item -Force $f }
           }
-          Remove-Item -Recurse -Force "dist/PersianSubtitleFixer/PyQt5/Qt5/translations" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "dist/PersianSubtitleFixer/_internal/PyQt6/Qt6/translations" -ErrorAction SilentlyContinue
         shell: pwsh
 
       - name: Clean unnecessary files (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          QT_PLUGINS="dist/PersianSubtitleFixer/PyQt5/Qt5/plugins"
+          QT_PLUGINS="dist/PersianSubtitleFixer/_internal/PyQt6/Qt6/plugins"
           rm -rf "$QT_PLUGINS/qml"
           rm -rf "$QT_PLUGINS/bearer"
           rm -rf "$QT_PLUGINS/generic"
@@ -159,15 +159,15 @@ jobs:
           rm -rf "$QT_PLUGINS/webview"
           rm -f "$QT_PLUGINS/imageformats/libq"{gif,icns,tga,wbmp,webp,pdf,svg,tiff,jp2,mng}".so"
           rm -f "$QT_PLUGINS/platforms/libq"{minimal,offscreen,webgl}".so"
-          rm -rf "dist/PersianSubtitleFixer/PyQt5/Qt5/translations"
+          rm -rf "dist/PersianSubtitleFixer/_internal/PyQt6/Qt6/translations"
         shell: bash
 
       - name: Prepare release directory
         run: |
           mkdir -p release
           if [ "$RUNNER_OS" = "Windows" ]; then
-            # One-folder bundle: exe needs python311.dll, _internal/ and PyQt5 beside it
-            cp -r dist/PersianSubtitleFixer/* release/
+          # One-folder bundle: exe needs _internal/ (python dll + PyQt6) beside it
+          cp -r dist/PersianSubtitleFixer/* release/
           elif [ "$RUNNER_OS" = "macOS" ]; then
             if [ -d "dist/PersianSubtitleFixer.app" ]; then
               cp -r dist/PersianSubtitleFixer.app release/
@@ -204,7 +204,7 @@ jobs:
               -srcfolder release -ov -format UDZO \
               "PersianSubtitleFixer-${{ env.APP_VERSION }}.dmg"
           else
-            # One-folder bundle: binary needs bundled libs and PyQt5 beside it
+            # One-folder bundle: binary needs bundled libs and PyQt6 beside it
             cp -r dist/PersianSubtitleFixer/* release/
             chmod +x release/PersianSubtitleFixer
           fi

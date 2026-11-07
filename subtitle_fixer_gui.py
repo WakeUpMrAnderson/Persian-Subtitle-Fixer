@@ -15,8 +15,8 @@ border); corner rounding is ours, never DWM's.
 import ctypes
 from os import getenv
 
-from PyQt5.QtCore import QPoint, QRectF, Qt
-from PyQt5.QtGui import (
+from PyQt6.QtCore import QPoint, QRectF, Qt
+from PyQt6.QtGui import (
     QBrush,
     QColor,
     QIcon,
@@ -25,7 +25,7 @@ from PyQt5.QtGui import (
     QPainterPath,
     QPen,
 )
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
@@ -75,9 +75,9 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowIcon(QIcon(r"assets\comics-mask_97446.ico"))
-        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setWindowTitle("Sub Fixer")  # targetable even though the titlebar is custom
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setMinimumSize(400, 110)
         self.resize(430, 118)  # original ~400x110 proportions
         self._dragging = False
@@ -101,7 +101,7 @@ class MainWindow(QWidget):
 
     def paintEvent(self, event):
         p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         r = QRectF(self.rect()).adjusted(1.0, 1.0, -1.0, -1.0)
         shape = QPainterPath()
@@ -172,7 +172,7 @@ class MyBar(QWidget):
 
         self.title = QLabel("Sub Fixer " + self.__version__)
         self.title.setFixedHeight(35)
-        self.title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.title.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.title.setStyleSheet("""
             padding-top: 8px;
             padding-left: 4px;
@@ -215,14 +215,14 @@ class MyBar(QWidget):
         layout.addWidget(self.btn_close)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self._dragging = True
             # remember where on the window the grab happened
-            self._drag_offset = event.globalPos() - self.parent.frameGeometry().topLeft()
+            self._drag_offset = event.globalPosition().toPoint() - self.parent.frameGeometry().topLeft()
 
     def mouseMoveEvent(self, event):
-        if self._dragging and event.buttons() & Qt.LeftButton:
-            self.parent.move(event.globalPos() - self._drag_offset)
+        if self._dragging and event.buttons() & Qt.MouseButton.LeftButton:
+            self.parent.move(event.globalPosition().toPoint() - self._drag_offset)
 
     def mouseReleaseEvent(self, event):
         self._dragging = False
@@ -240,7 +240,7 @@ class NewLabel(QLabel):
         self.parent = parent
         self.stat = False
         self.setAcceptDrops(True)
-        self.setAlignment(Qt.AlignCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setText("Drag & Drop your Subtitle here.\nEnjoy ;)")
         self.setStyleSheet("""
                      border: 3px dashed red;
@@ -261,7 +261,7 @@ class NewLabel(QLabel):
 
     def reset(self):
         self.setAcceptDrops(True)
-        self.setAlignment(Qt.AlignCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setText("Drag & Drop your Subtitle here.\nEnjoy ;)")
         self.stat = False
 
@@ -275,7 +275,7 @@ class NewLabel(QLabel):
 
     def dropEvent(self, event):
         if event.mimeData().hasUrls():
-            event.setDropAction(Qt.CopyAction)
+            event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
 
             links = []
