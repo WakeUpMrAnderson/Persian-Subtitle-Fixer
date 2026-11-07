@@ -153,3 +153,6 @@ $RECYCLE.BIN/
 .codebase-memory/
 .serena/
 
+
+# pinned VC runtime DLLs for release artifacts
+!packaging/vc_runtime/*.dll
