@@ -1,24 +1,30 @@
-"""Sub Fixer GUI - solid custom titlebar + winotch-style dark glass body.
+"""Sub Fixer GUI - solid custom titlebar + glassmorphism body.
 
 The window is frameless with per-pixel alpha (WA_TranslucentBackground).
-The visual language is borrowed from yappologistic/winotch, whose entire
-"liquid glass" look is pure painting on a transparent window - no acrylic,
-no DWM backdrop, no blur of the desktop:
-  * near-black shell (#050505) with large rounded corners,
-  * hairline stroke + specular gloss for the glassy read.
-Here the body keeps a hint of see-through (GLASS_ALPHA) so the desktop
-shows through as a dark haze; the titlebar stays fully opaque.
-The drop zone keeps its 3px dashed red border, bold Segoe print and same
-texts - in white, because black text is unreadable on the dark shell.
-DWM is used for cosmetics only (dark tint, rounded-corner preference,
-no 1px window border).
+The body is classic glassmorphism (Apple liquid glass / glassmorphism
+cards): a light translucent white tint over the desktop, bright rim
+border glowing top-left, faint inner second edge, specular gloss under
+the titlebar and generous corner rounding. No acrylic, no DWM backdrop,
+no blur of the desktop - pure painting on a per-pixel-alpha window;
+the titlebar stays solid #050505. The drop zone keeps its 3px dashed
+red border, bold Segoe print and same texts (white for readability on
+glass). DWM is used for cosmetics only (dark tint, no 1px window
+border); corner rounding is ours, never DWM's.
 """
 
 import ctypes
 from os import getenv
 
 from PyQt5.QtCore import QPoint, QRectF, Qt
-from PyQt5.QtGui import QColor, QIcon, QLinearGradient, QPainter, QPainterPath, QPen
+from PyQt5.QtGui import (
+    QBrush,
+    QColor,
+    QIcon,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPen,
+)
 from PyQt5.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
@@ -31,12 +37,21 @@ from PyQt5.QtWidgets import (
 from subtitle_processor import main
 
 BAR_HEIGHT = 36
-RADIUS = 18  # winotch-style generous corner rounding
+RADIUS = 18  # glassmorphism-card corner rounding
 
-# winotch palette (App.xaml: NotchBlack #050505) with a translucent take
+# titlebar: solid opaque black (kept solid on purpose)
 SHELL_RGB = (5, 5, 5)
-GLASS_ALPHA = 205  # 255 = fully opaque like winotch; lower = more see-through
-HAIRLINE_ALPHA = 18  # 1px stroke around the shell
+
+# glassmorphism body knobs (white tint - the desktop shows through hazed;
+# alpha values are 0-255, higher = more frosted/opaque)
+GLASS_TINT_TOP = 90
+GLASS_TINT_MID = 60
+GLASS_TINT_BOTTOM = 50
+GLOSS_ALPHA = 50  # specular streak right under the titlebar
+RIM_TOP = 170  # outer border: bright top-left ...
+RIM_MID = 60
+RIM_BOTTOM = 120  # ... dimmer bottom-right
+INNER_EDGE_ALPHA = 55  # faint second edge just inside the rim
 
 # DWM cosmetics (values are stable across Win10/11)
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
@@ -93,33 +108,35 @@ class MainWindow(QWidget):
         shape.addRoundedRect(r, RADIUS, RADIUS)
         shell = QColor(*SHELL_RGB)
 
-        # -- smoked-glass body: the desktop shows through as a dark haze.
-        #    Square top edge (under the titlebar), rounded bottom.
+        # -- glassmorphism body: translucent white tint; the desktop shows
+        #    through hazed. Square top edge (under the titlebar), rounded bottom.
         cut = QRectF(r.left(), r.top() + BAR_HEIGHT - RADIUS, r.width(), r.height() - BAR_HEIGHT + RADIUS)
         cut_path = QPainterPath()
         cut_path.addRect(cut)
         body = shape.intersected(cut_path)
 
-        glass = QColor(shell)
-        glass.setAlpha(GLASS_ALPHA)
-        p.fillPath(body, glass)
+        tint = QLinearGradient(r.topLeft(), r.bottomLeft())
+        tint.setColorAt(0.00, QColor(255, 255, 255, GLASS_TINT_TOP))
+        tint.setColorAt(0.35, QColor(255, 255, 255, GLASS_TINT_MID))
+        tint.setColorAt(1.00, QColor(255, 255, 255, GLASS_TINT_BOTTOM))
+        p.fillPath(body, tint)
 
         # depth: slightly darker toward the bottom edge of the pane
         depth = QLinearGradient(r.topLeft(), r.bottomLeft())
-        depth.setColorAt(0.75, QColor(0, 0, 0, 0))
-        depth.setColorAt(1.00, QColor(0, 0, 0, 60))
+        depth.setColorAt(0.70, QColor(0, 0, 0, 0))
+        depth.setColorAt(1.00, QColor(0, 0, 0, 40))
         p.fillPath(body, depth)
 
         # specular gloss catching light right under the titlebar
         streak = QRectF(r.left() + 2, r.top() + BAR_HEIGHT, r.width() - 4, 10)
         glow = QLinearGradient(streak.topLeft(), streak.bottomLeft())
-        glow.setColorAt(0.0, QColor(255, 255, 255, 28))
+        glow.setColorAt(0.0, QColor(255, 255, 255, GLOSS_ALPHA))
         glow.setColorAt(1.0, QColor(255, 255, 255, 0))
         streak_path = QPainterPath()
         streak_path.addRoundedRect(streak, 10, 10)
         p.fillPath(body.intersected(streak_path), glow)
 
-        # -- solid titlebar (winotch NotchBlack, fully opaque)
+        # -- solid titlebar (kept solid on purpose)
         top = QPainterPath()
         top.addRect(QRectF(r.left(), r.top(), r.width(), BAR_HEIGHT))
         p.fillPath(shape.intersected(top), shell)
@@ -127,8 +144,17 @@ class MainWindow(QWidget):
         # hairline separating titlebar from the glass
         p.fillRect(QRectF(r.left(), r.top() + BAR_HEIGHT, r.width(), 1), QColor(255, 255, 255, 26))
 
-        # -- hairline stroke around the shell (winotch-style edge definition)
-        p.strokePath(shape, QPen(QColor(255, 255, 255, HAIRLINE_ALPHA), 1))
+        # -- glass border: bright top-left, dimmer bottom-right
+        rim = QLinearGradient(r.topLeft(), r.bottomRight())
+        rim.setColorAt(0.00, QColor(255, 255, 255, RIM_TOP))
+        rim.setColorAt(0.45, QColor(255, 255, 255, RIM_MID))
+        rim.setColorAt(1.00, QColor(255, 255, 255, RIM_BOTTOM))
+        p.strokePath(shape, QPen(QBrush(rim), 1.2))
+
+        # faint inner edge just inside the rim (glassmorphism double edge)
+        inner = QPainterPath()
+        inner.addRoundedRect(r.adjusted(2.0, 2.0, -2.0, -2.0), RADIUS - 2, RADIUS - 2)
+        p.strokePath(inner, QPen(QColor(255, 255, 255, INNER_EDGE_ALPHA), 1))
 
 
 class MyBar(QWidget):
