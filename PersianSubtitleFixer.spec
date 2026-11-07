@@ -29,7 +29,8 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=True,  # Strip symbols to reduce size
-    upx=True,
+    upx=False,  # UPX-packed python DLLs fail to load ("Invalid access to
+    # memory location", v0.4.1 artifact) and attract antivirus false positives
     console=False,  # Changed to False to hide terminal window
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -45,7 +46,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=True,  # Strip symbols to reduce size
-    upx=True,
+    upx=False,  # see note above
     upx_exclude=[],
     name='PersianSubtitleFixer'
 )
