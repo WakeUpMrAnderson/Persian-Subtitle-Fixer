@@ -71,6 +71,18 @@ jobs:
       - name: Build with PyInstaller
         run: pyinstaller --clean PersianSubtitleFixer.spec
 
+      - name: Pin known-good VC runtime (Windows)
+        # The runner's bundled VCRUNTIME140.dll (v14.51) fails to load on
+        # some Windows builds ("Invalid access to memory location" when the
+        # bootloader loads python313.dll - verified on an Insider build).
+        # Ship a pinned, known-good copy instead (redistributable per the
+        # VC redist license).
+        if: runner.os == 'Windows'
+        run: |
+          Copy-Item packaging/vc_runtime/VCRUNTIME140.dll, packaging/vc_runtime/VCRUNTIME140_1.dll `
+            -Destination "dist/PersianSubtitleFixer/_internal/" -Force
+        shell: pwsh
+
       - name: Clean unnecessary files (Windows)
         if: runner.os == 'Windows'
         run: |
